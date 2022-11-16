@@ -138,14 +138,6 @@ void temperature(){
   
   
   lcd.setCursor(0, 1);
-  lcd.print(temperatur);
-  Serial.print("R ->");
-  Serial.println(R);
-  Serial.print("sensorWert ->");
-  Serial.println(sensorWert);  
+  lcd.print(temperatur); 
 
 }
-
-
-
-//lcd.createChar(0, degrees);
