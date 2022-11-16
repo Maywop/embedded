@@ -1,3 +1,7 @@
+/*
+Zur Nutzung des LC-Displays am Arduino Due müssen die rgb_lcd.h & rgb_lcd.cpp Dateien der rgb lcd library mit denen auf der Moodle Seite zur Verfügung gestellten ersetzt werden
+*/
+
 #define DEBUG
 // green board
 #if defined(ARDUINO_ARCH_SAM)
