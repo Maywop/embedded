@@ -1,0 +1,134 @@
+#define F_CPU 1000000UL  // Definiert die Taktfrequenz des Mikrocontrollers
+
+#include <util/delay.h>  // Enthält Funktionen zur Verzögerung
+#include <avr/io.h>      // Enthält die Registerdefinitionen für den AVR-Mikrocontroller
+#include <stdint.h>      // Enthält Definitionen für Integer-Datentypen
+#include <stdio.h>       // Enthält Funktionen für Ein-/Ausgabe
+
+uint8_t man(uint8_t loc)
+{
+	// Überprüft, ob die Tasten PD6 (Shift links) und PD4 (Shift rechts) nicht gedrückt sind
+	if( !(PIND & (1<<PD6)) & !(!(PIND & (1<<PD4))) )
+	{
+		_delay_ms(2000);  // Warte für 2 Sekunden
+
+		// Wenn der aktuelle Wert von loc 0x80 ist, setze ihn auf 0x01, sonst verschiebe den Wert von loc um 1 Bit nach links
+		if(loc == 0x80)
+		{
+			loc = 0x01;
+		}
+		else
+		{
+			loc = loc<<1;
+		}
+	}
+	// Überprüft, ob die Tasten PD6 (Shift links) und PD4 (Shift rechts) gedrückt sind
+	else if ( !(!(PIND & (1<<PD6))) & !(PIND & (1<<PD4)) )
+	{
+		_delay_ms(2000);  // Warte für 2 Sekunden
+
+		// Wenn der aktuelle Wert von loc 0x01 ist, setze ihn auf 0x80, sonst verschiebe den Wert von loc um 1 Bit nach rechts
+		if(loc == 0x01)
+		{
+			loc = 0x80;
+		}
+		else
+		{
+			loc = loc>>1;
+		}
+	}
+	return loc;  // Gib den aktualisierten Wert von loc zurück
+
+}
+uint8_t automatic(uint8_t loc)
+{
+	do
+	{
+		int linksrechts = 1;  // Variable zur Bestimmung der Richtung (1 = Linkslauf, 2 = Rechtslauf)
+
+		// Überprüft, ob die Tasten PD6 (Shift links) und PD4 (Shift rechts) nicht gedrückt sind
+		if( !(PIND & (1<<PD6)) & !(!(PIND & (1<<PD4))) )
+		{
+			linksrechts = 1;  // Setzt die Richtung auf Linkslauf
+		}
+		// Überprüft, ob die Tasten PD6 (Shift links) und PD4 (Shift rechts) gedrückt sind
+		else if ( !(!(PIND & (1<<PD6))) & !(PIND & (1<<PD4)) )
+		{
+			linksrechts = 2;  // Setzt die Richtung auf Rechtslauf
+		}
+
+		switch(linksrechts)
+		{
+			case 1:  // Linkslauf
+			_delay_ms(2000);  // Warte für 2 Sekunden
+
+			// Wenn der aktuelle Wert von loc 0x80 ist, setze ihn auf 0x01, sonst verschiebe den Wert von loc um 1 Bit nach links
+			if(loc == 0x80)
+			{
+				loc = 0x01;
+			}
+			else
+			{
+				loc = loc << 1;
+			}
+			PORTB = ~loc;  // Aktualisiert den Wert des Ausgangsregisters PORTB
+			break;
+
+			case 2:  // Rechtslauf
+			_delay_ms(2000);  // Warte für 2 Sekunden
+
+			// Wenn der aktuelle Wert von loc 0x01 ist, setze ihn auf 0x80, sonst verschiebe den Wert von loc um 1 Bit nach rechts
+			if(loc == 0x01)
+			{
+				loc = 0x80;
+			}
+			else
+			{
+				loc = loc >> 1;
+			}
+			PORTB = ~loc;  // Aktualisiert den Wert des Ausgangsregisters PORTB
+			break;
+		}
+	}
+	while(!(!(PIND & (1<<PD5))));  // Führt die Schleife aus, solange die Taste PD5 nicht gedrückt ist
+
+	return loc;  // Gib den aktuellen Wert von loc zurück
+}
+int main(void)
+{
+	DDRD = 0b00;  // Setzt die Datenrichtung von Port D auf Eingabe
+	DDRC = 0xFF;  // Setzt die Datenrichtung von Port C auf Ausgabe
+	DDRB = 0xFF;  // Setzt die Datenrichtung von Port B auf Ausgabe
+	uint8_t location = 0x01;  // Initialisiert die Variable "location" mit dem Wert 0x01
+	int modus = 2;  // Initialisiert die Variable "modus" mit dem Wert 2
+	PORTB = ~location;  // Setzt den Wert des Ausgangsregisters PORTB auf das invertierte "location"
+
+	while (1)  // Endlosschleife
+	{
+		if( !(PIND & (1<<PD5)) )  // Überprüft, ob die Taste PD5 nicht gedrückt ist
+		{
+			_delay_ms(2000);  // Warte für 2 Sekunden
+
+			if (modus == 1)  // Überprüft den aktuellen Wert von "modus"
+			{
+				modus = 2;  // Wenn "modus" gleich 1 ist, setze ihn auf 2
+			}
+			else
+			{
+				modus = 1;  // Wenn "modus" nicht gleich 1 ist, setze ihn auf 1
+			}
+		}
+
+		switch(modus)  // Überprüft den aktuellen Wert von "modus"
+		{
+			case 1:  // Wenn "modus" gleich 1 ist
+			PORTB = ~man(location);  // Ruft die Funktion "man()" auf und invertiert den Rückgabewert, setzt den Wert des Ausgangsregisters PORTB
+			location = ~PORTB;  // Invertiert den Wert des Ausgangsregisters PORTB und weist ihn der Variable "location" zu
+			break;
+
+			case 2:  // Wenn "modus" gleich 2 ist
+			location = automatic(location);  // Ruft die Funktion "automatic()" auf und weist den Rückgabewert der Variable "location" zu
+			break;
+		}
+	}
+}
